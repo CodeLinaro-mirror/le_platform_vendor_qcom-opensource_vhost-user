@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2021 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  * Copyright IBM, Corp. 2007
  * Copyright (c) 2016 Red Hat, Inc.
  *
@@ -327,6 +328,8 @@ vhost_user_qti_get_features_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
 static int
 vhost_user_qti_set_features_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
 {
+    vmsg->payload.u64 &= ~(1 << VIRTIO_GPU_F_VENDOR);
+
     DPRINT("u64: 0x%016"PRIx64"\n", vmsg->payload.u64);
 
     return vhost_kernel_set_features(dev->dev_fd, vmsg->payload.u64);
@@ -335,10 +338,7 @@ vhost_user_qti_set_features_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
 static int
 vhost_user_qti_set_owner_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
 {
-    //return vhost_kernel_set_owner(dev->dev_fd);
-    vhost_kernel_set_owner(dev->dev_fd);
-    /* opsy virtio-gpu doesn't send VHOST_USER_SET_FEATURES, we need to do it */
-    return vhost_kernel_set_features(dev->dev_fd, 0x130000000);
+    return vhost_kernel_set_owner(dev->dev_fd);
 }
 
 static int
