@@ -39,6 +39,24 @@
 
 #define VHOST_USER_HDR_SIZE offsetof(VhostUserMsg, payload.u64)
 
+typedef enum VhostUserQtiDeviceType {
+    VhostUserQtiDeviceAUD = 0,
+    VhostUserQtiDeviceCAM,
+    VhostUserQtiDeviceDISP,
+    VhostUserQtiDeviceGFX,
+    VhostUserQtiDeviceVID,
+    VhostUserQtiDeviceMISC,
+    VhostUserQtiDeviceQCPE,
+    VhostUserQtiDeviceCLK,
+    VhostUserQtiDeviceFDE,
+    VhostUserQtiDeviceBUFFERQ,
+    VhostUserQtiDeviceNETWORK,
+    VhostUserQtiDeviceHSI2S,
+    VhostUserQtiDeviceXVM,
+    VhostUserQtiDeviceHAB,
+    VhostUserQtiDeviceMAX
+} VhostUserQtiDeviceType;
+
 /* The version of the protocol we support */
 #define VHOST_USER_VERSION 1
 typedef struct VhostUserQtiMemRegion {
@@ -59,10 +77,28 @@ typedef struct VhostUserQtiDev {
     int sock_fd;
     char *socket_path;
     uint16_t max_queues;
+    VhostUserQtiDeviceType dev_type;
 
     uint32_t nregions;
     VhostUserQtiMemRegion regions[VHOST_MEMORY_MAX_NREGIONS];
 } VhostUserQtiDev;
+
+static const char *g_dev_path[VhostUserQtiDeviceMAX] = {
+    [VhostUserQtiDeviceAUD] = "/dev/vhost-aud",
+    [VhostUserQtiDeviceCAM] = "/dev/vhost-cam",
+    [VhostUserQtiDeviceDISP] = "/dev/vhost-disp",
+    [VhostUserQtiDeviceGFX] = "/dev/vhost-ogles",
+    [VhostUserQtiDeviceVID] = "/dev/vhost-vid",
+    [VhostUserQtiDeviceMISC] = "/dev/vhost-misc",
+    [VhostUserQtiDeviceQCPE] = "/dev/vhost-qcpe",
+    [VhostUserQtiDeviceCLK] = "/dev/vhost-clock",
+    [VhostUserQtiDeviceFDE] = "/dev/vhost-fde",
+    [VhostUserQtiDeviceBUFFERQ] = "/dev/vhost-bufferq",
+    [VhostUserQtiDeviceNETWORK] = "/dev/vhost-network",
+    [VhostUserQtiDeviceHSI2S] = "/dev/vhost-hsi2s",
+    [VhostUserQtiDeviceXVM] = "/dev/vhost-xvm",
+    [VhostUserQtiDeviceHAB] = "/dev/vhost-hab"
+};
 
 /* implement strlcpy to replace banned function */
 static size_t strlcpy(char *dst, const char *src, size_t size)
@@ -85,6 +121,23 @@ static size_t strlcpy(char *dst, const char *src, size_t size)
     *dst = '\0';
 
     return n;
+}
+
+static int get_device_type(VhostUserQtiDev *dev, const char *dev_path)
+{
+    VhostUserQtiDeviceType type = (VhostUserQtiDeviceType)0;
+    int ret = -1;
+
+    while (type < VhostUserQtiDeviceMAX) {
+        if (0 == strncmp(g_dev_path[type], dev_path, strlen(g_dev_path[type]))) {
+            dev->dev_type = type;
+            ret = 0;
+            break;
+        }
+        type++;
+    }
+
+    return ret;
 }
 
 static const char *
@@ -318,7 +371,9 @@ vhost_user_qti_get_features_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
 
     ret = vhost_kernel_get_features(dev->dev_fd, &vmsg->payload.u64);
 
-    vmsg->payload.u64 |= (1 << VIRTIO_GPU_F_VENDOR);
+    if (VhostUserQtiDeviceGFX == dev->dev_type) {
+        vmsg->payload.u64 |= (1 << VIRTIO_GPU_F_VENDOR);
+    }
 
     DPRINT("Sending back to guest u64: 0x%016"PRIx64"\n", vmsg->payload.u64);
 
@@ -328,7 +383,9 @@ vhost_user_qti_get_features_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
 static int
 vhost_user_qti_set_features_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
 {
-    vmsg->payload.u64 &= ~(1 << VIRTIO_GPU_F_VENDOR);
+    if (VhostUserQtiDeviceGFX == dev->dev_type) {
+        vmsg->payload.u64 &= ~(1 << VIRTIO_GPU_F_VENDOR);
+    }
 
     DPRINT("u64: 0x%016"PRIx64"\n", vmsg->payload.u64);
 
@@ -430,8 +487,13 @@ vhost_user_qti_set_vring_num_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
     DPRINT("State.index: %d\n", vmsg->payload.state.index);
     DPRINT("State.num:   %d\n", vmsg->payload.state.num);
 
-    /* opsy virtio-gpu send us index 2 and 3 for vendor queues, we need to change them to 0 and 1 */
-    vmsg->payload.state.index -= 2;
+    if (VhostUserQtiDeviceGFX == dev->dev_type) {
+        /* opsy virtio-gpu send us index 2 and 3 for vendor queues,
+         * we need to change them to 0 and 1
+         */
+        vmsg->payload.state.index -= 2;
+    }
+
     return vhost_kernel_set_vring_num(dev->dev_fd, &vmsg->payload.state);
 }
 
@@ -453,7 +515,12 @@ vhost_user_qti_set_vring_addr_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
         return -EINVAL;
     }
 
-    k_vra.index = vra->index - 2;
+    if (VhostUserQtiDeviceGFX == dev->dev_type) {
+        k_vra.index = vra->index - 2;
+    } else {
+        k_vra.index = vra->index;
+    }
+
     k_vra.flags = vra->flags & (~(1 << VHOST_VRING_F_LOG));//we don't support log
     k_vra.desc_user_addr = (uint64_t)(uintptr_t)hva_to_va(dev, vra->desc_user_addr);
     k_vra.used_user_addr = (uint64_t)(uintptr_t)hva_to_va(dev, vra->used_user_addr);
@@ -477,7 +544,10 @@ vhost_user_qti_set_vring_base_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
     DPRINT("State.index: %d\n", index);
     DPRINT("State.num:   %d\n", num);
 
-    vmsg->payload.state.index -= 2;
+    if (VhostUserQtiDeviceGFX == dev->dev_type) {
+        vmsg->payload.state.index -= 2;
+    }
+
     return vhost_kernel_set_vring_base(dev->dev_fd, &vmsg->payload.state);
 }
 
@@ -489,7 +559,10 @@ vhost_user_qti_get_vring_base_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
     DPRINT("State.index: %d\n", index);
     vmsg->size = sizeof(vmsg->payload.state);
 
-    vmsg->payload.state.index -= 2;
+    if (VhostUserQtiDeviceGFX == dev->dev_type) {
+        vmsg->payload.state.index -= 2;
+    }
+
     return vhost_kernel_get_vring_base(dev->dev_fd, &vmsg->payload.state);
 }
 
@@ -501,7 +574,12 @@ vhost_user_qti_set_vring_kick_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
 
     DPRINT("u64: 0x%016"PRIx64"\n", vmsg->payload.u64);
 
-    k_vrf.index = index - 2;
+    if (VhostUserQtiDeviceGFX == dev->dev_type) {
+        k_vrf.index = index - 2;
+    } else {
+        k_vrf.index = index;
+    }
+
     k_vrf.fd = vmsg->fds[0];
 
     DPRINT("Got kick_fd: %d for vq: %d\n", vmsg->fds[0], index);
@@ -517,7 +595,12 @@ vhost_user_qti_set_vring_call_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
 
     DPRINT("u64: 0x%016"PRIx64"\n", vmsg->payload.u64);
 
-    k_vrf.index = index - 2;
+    if (VhostUserQtiDeviceGFX == dev->dev_type) {
+        k_vrf.index = index - 2;
+    } else {
+        k_vrf.index = index;
+    }
+
     k_vrf.fd = vmsg->fds[0];
 
     DPRINT("Got call_fd: %d for vq: %d\n", vmsg->fds[0], index);
@@ -533,7 +616,12 @@ vhost_user_qti_set_vring_err_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
 
     DPRINT("u64: 0x%016"PRIx64"\n", vmsg->payload.u64);
 
-    k_vrf.index = index - 2;
+    if (VhostUserQtiDeviceGFX == dev->dev_type) {
+        k_vrf.index = index - 2;
+    } else {
+        k_vrf.index = index;
+    }
+
     k_vrf.fd = vmsg->fds[0];
 
     DPRINT("Got err_fd: %d for vq: %d\n", vmsg->fds[0], index);
@@ -704,6 +792,11 @@ int main(int argc, char *argv[])
 
     if (!dev.socket_path || !dev_path || (dev.max_queues <= 0) || (dev.max_queues > 0xFFFF)) {
         print_usage();
+        exit(EXIT_FAILURE);
+    }
+
+    if (get_device_type(&dev, dev_path) < 0) {
+        EPRINT("failed to get device type with dev path %s\n", dev_path);
         exit(EXIT_FAILURE);
     }
 
