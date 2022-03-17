@@ -384,6 +384,7 @@ static int
 vhost_user_qti_set_features_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
 {
     if (VhostUserQtiDeviceGFX == dev->dev_type) {
+        vmsg->payload.u64 = 0x120000100;
         vmsg->payload.u64 &= ~(1 << VIRTIO_GPU_F_VENDOR);
     }
 
