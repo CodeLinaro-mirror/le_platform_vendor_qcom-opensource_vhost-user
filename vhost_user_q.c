@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2021-2022 The Linux Foundation. All rights reserved.
  * Copyright IBM, Corp. 2007
  * Copyright (c) 2016 Red Hat, Inc.
  *
@@ -192,7 +192,7 @@ vhost_user_qti_message_read(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
 
     do {
         rc = recvmsg(dev->sock_fd, &msg, 0);
-        EPRINT("recvmsg returns %d\n");
+        EPRINT("recvmsg returns %d\n", rc);
     } while (rc < 0 && (errno == EINTR || errno == EAGAIN));
 
     if (rc <= 0) {
