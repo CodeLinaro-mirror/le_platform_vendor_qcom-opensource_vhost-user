@@ -6,6 +6,42 @@
  *See the NOTICE file in the top-level directory.
  */
 
+/*
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved,
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted (subject to the limitations in the
+ * disclaimer below) provided that the following conditions are met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *
+ *     * Redistributions in binary form must reproduce the above
+ *       copyright notice, this list of conditions and the following
+ *       disclaimer in the documentation and/or other materials provided
+ *       with the distribution.
+ *
+ *     * Neither the name of Qualcomm Innovation Center, Inc. nor the names of its
+ *       contributors may be used to endorse or promote products derived
+ *       from this software without specific prior written permission.
+ *
+ * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
+ * GRANTED BY THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
+ * HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -56,74 +92,62 @@ int vhost_kernel_set_log_base(int fd, uint64_t base)
     return vhost_kernel_call(fd, VHOST_SET_LOG_BASE, &base);
 }
 
-int vhost_kernel_set_mem_table(int fd,
-                                      struct vhost_memory *mem)
+int vhost_kernel_set_mem_table(int fd, struct vhost_memory *mem)
 {
     return vhost_kernel_call(fd, VHOST_SET_MEM_TABLE, mem);
 }
 
-int vhost_kernel_set_vring_addr(int fd,
-                                       struct vhost_vring_addr *addr)
+int vhost_kernel_set_vring_addr(int fd, struct vhost_vring_addr *addr)
 {
     return vhost_kernel_call(fd, VHOST_SET_VRING_ADDR, addr);
 }
 
-int vhost_kernel_set_vring_endian(int fd,
-                                         struct vhost_vring_state *ring)
+int vhost_kernel_set_vring_endian(int fd, struct vhost_vring_state *ring)
 {
     return vhost_kernel_call(fd, VHOST_SET_VRING_ENDIAN, ring);
 }
 
-int vhost_kernel_set_vring_num(int fd,
-                                      struct vhost_vring_state *ring)
+int vhost_kernel_set_vring_num(int fd, struct vhost_vring_state *ring)
 {
     return vhost_kernel_call(fd, VHOST_SET_VRING_NUM, ring);
 }
 
-int vhost_kernel_set_vring_base(int fd,
-                                       struct vhost_vring_state *ring)
+int vhost_kernel_set_vring_base(int fd, struct vhost_vring_state *ring)
 {
     return vhost_kernel_call(fd, VHOST_SET_VRING_BASE, ring);
 }
 
-int vhost_kernel_get_vring_base(int fd,
-                                       struct vhost_vring_state *ring)
+int vhost_kernel_get_vring_base(int fd, struct vhost_vring_state *ring)
 {
     return vhost_kernel_call(fd, VHOST_GET_VRING_BASE, ring);
 }
 
-int vhost_kernel_set_vring_kick(int fd,
-                                       struct vhost_vring_file *file)
+int vhost_kernel_set_vring_kick(int fd, struct vhost_vring_file *file)
 {
     return vhost_kernel_call(fd, VHOST_SET_VRING_KICK, file);
 }
 
-int vhost_kernel_set_vring_call(int fd,
-                                       struct vhost_vring_file *file)
+int vhost_kernel_set_vring_call(int fd, struct vhost_vring_file *file)
 {
     return vhost_kernel_call(fd, VHOST_SET_VRING_CALL, file);
 }
 
-int vhost_kernel_set_vring_err(int fd,
-                                       struct vhost_vring_file *file)
+int vhost_kernel_set_vring_err(int fd, struct vhost_vring_file *file)
 {
     return vhost_kernel_call(fd, VHOST_SET_VRING_ERR, file);
 }
 
-int vhost_kernel_set_vring_busyloop_timeout(int fd,
-                                                   struct vhost_vring_state *s)
+int vhost_kernel_set_vring_busyloop_timeout(int fd, struct vhost_vring_state *s)
 {
     return vhost_kernel_call(fd, VHOST_SET_VRING_BUSYLOOP_TIMEOUT, s);
 }
 
-int vhost_kernel_set_features(int fd,
-                                     uint64_t features)
+int vhost_kernel_set_features(int fd, uint64_t features)
 {
     return vhost_kernel_call(fd, VHOST_SET_FEATURES, &features);
 }
 
-int vhost_kernel_get_features(int fd,
-                                     uint64_t *features)
+int vhost_kernel_get_features(int fd, uint64_t *features)
 {
     return vhost_kernel_call(fd, VHOST_GET_FEATURES, features);
 }
