@@ -2,6 +2,7 @@
  * Copyright (c) 2021 The Linux Foundation. All rights reserved.
  * Copyright IBM, Corp. 2007
  * Copyright (c) 2016 Red Hat, Inc.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Authors:
  * Anthony Liguori <aliguori@us.ibm.com>
@@ -10,42 +11,6 @@
  *
  * This work is licensed under the terms of the GNU GPL, version 2 or later.
  * See the NOTICE file in the top-level directory.
- */
-
-/*
- * Changes from Qualcomm Innovation Center are provided under the following license:
- *
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved,
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted (subject to the limitations in the
- * disclaimer below) provided that the following conditions are met:
- *
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *
- *     * Redistributions in binary form must reproduce the above
- *       copyright notice, this list of conditions and the following
- *       disclaimer in the documentation and/or other materials provided
- *       with the distribution.
- *
- *     * Neither the name of Qualcomm Innovation Center, Inc. nor the names of its
- *       contributors may be used to endorse or promote products derived
- *       from this software without specific prior written permission.
- *
- * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
- * GRANTED BY THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
- * HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
- * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
- * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
- * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
- * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include <stdlib.h>
@@ -97,6 +62,8 @@ typedef struct VhostUserQtiDev {
 
     uint32_t nregions;
     VhostUserQtiMemRegion regions[VHOST_MEMORY_MAX_NREGIONS];
+    uint32_t driver_reset;
+    uint32_t need_setowner;
 } VhostUserQtiDev;
 
 /* implement strlcpy to replace banned function */
@@ -161,6 +128,13 @@ vhost_user_qti_request_to_string(unsigned int req)
         REQ(VHOST_USER_GET_INFLIGHT_FD),
         REQ(VHOST_USER_SET_INFLIGHT_FD),
         REQ(VHOST_USER_GPU_SET_SOCKET),
+        REQ(VHOST_USER_RESET_DEVICE),
+        REQ(VHOST_USER_VRING_KICK),
+        REQ(VHOST_USER_GET_MAX_MEM_SLOTS),
+        REQ(VHOST_USER_ADD_MEM_REG),
+        REQ(VHOST_USER_REM_MEM_REG),
+        REQ(VHOST_USER_SET_STATUS),
+        REQ(VHOST_USER_GET_STATUS),
         REQ(VHOST_USER_MAX),
     };
 #undef REQ
@@ -350,12 +324,14 @@ vhost_user_qti_get_features_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
 {
     int ret;
 
+    vmsg->flags = 0;
     vmsg->size = sizeof(vmsg->payload.u64);
     vmsg->fd_num = 0;
 
     ret = vhost_kernel_get_features(dev->dev_fd, &vmsg->payload.u64);
 
     vmsg->payload.u64 |= (1 << VIRTIO_GPU_F_VENDOR);
+    vmsg->payload.u64 |= (1 << VHOST_USER_F_PROTOCOL_FEATURES);
 
     DPRINT("Sending back to guest u64: 0x%016"PRIx64"\n", vmsg->payload.u64);
 
@@ -382,7 +358,15 @@ vhost_user_qti_set_owner_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
 static int
 vhost_user_qti_reset_device_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
 {
-    return vhost_kernel_reset_device(dev->dev_fd);
+    int ret = 0;
+
+    /* VHOST_USER_PROTOCOL_F_STATUS supersedes the feature VHOST_USER_PROTOCOL_F_RESET_DEVICE
+       so not do anything here now
+    */
+    //ret = vhost_kernel_reset_device(dev->dev_fd);
+    //dev->need_setowner = 1;
+
+    return ret;
 }
 
 static int
@@ -603,6 +587,69 @@ vhost_user_qti_set_config_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
 }
 
 static int
+vhost_user_qti_get_protocol_features_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
+{
+    int ret = 0;
+
+    vmsg->flags = 0;
+    vmsg->size = sizeof(vmsg->payload.u64);
+    vmsg->payload.u64 = 0;
+    vmsg->fd_num = 0;
+
+    /*
+      VHOST_USER_PROTOCOL_F_STATUS supersedes the feature VHOST_USER_PROTOCOL_F_RESET_DEVICE
+      so not do anything here now
+    */
+    //vmsg->payload.u64 |= (1 << VHOST_USER_PROTOCOL_F_RESET_DEVICE);
+    vmsg->payload.u64 |= (1 << VHOST_USER_PROTOCOL_F_REPLY_ACK);
+    vmsg->payload.u64 |= (1 << VHOST_USER_PROTOCOL_F_STATUS);
+    DPRINT("Sending protocol feature back to guest u64: 0x%016"PRIx64"\n", vmsg->payload.u64);
+
+    return ret;
+}
+
+static int
+vhost_user_qti_set_protocol_features_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
+{
+    DPRINT("u64: 0x%016"PRIx64"\n", vmsg->payload.u64);
+    return 0;
+}
+
+static int
+vhost_user_qti_set_status_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
+{
+    int ret = 0;
+    bool reply_supported = 0;
+
+    DPRINT("u64: 0x%016"PRIx64"\n", vmsg->payload.u64);
+    reply_supported = vmsg->flags & (1 << VHOST_USER_PROTOCOL_F_REPLY_ACK);
+
+    if (0 == vmsg->payload.u64) {
+        dev->driver_reset += 1;
+    } else {
+        dev->driver_reset = 0;
+    }
+
+    if (1 == dev->driver_reset) {
+        ret = vhost_kernel_reset_device(dev->dev_fd);
+        dev->need_setowner = 1;
+    }
+
+    if (reply_supported) {
+    /*
+      This indicates that the back-end MUST respond with a Payload VhostUserMsg indicating success
+      or failure. The payload should be set to zero on success or non-zero on failure
+    */
+	if (ret)
+		vmsg->payload.u64 = 1;
+	else
+		vmsg->payload.u64 = 0;
+    }
+
+    return ret;
+}
+
+static int
 vhost_user_qti_process_message(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
 {
     int do_reply = 0;
@@ -621,6 +668,11 @@ vhost_user_qti_process_message(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
             DPRINT(" %d", vmsg->fds[i]);
         }
         DPRINT("\n");
+    }
+
+    if (dev->need_setowner) {
+        vhost_user_qti_set_owner_exec(dev, vmsg);
+        dev->need_setowner = 0;
     }
 
     switch (vmsg->request) {
@@ -652,6 +704,14 @@ vhost_user_qti_process_message(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
         return vhost_user_qti_get_queue_num_exec(dev, vmsg);
     case VHOST_USER_SET_CONFIG:
         return vhost_user_qti_set_config_exec(dev, vmsg);
+    case VHOST_USER_GET_PROTOCOL_FEATURES:
+        return vhost_user_qti_get_protocol_features_exec(dev, vmsg);
+    case VHOST_USER_SET_PROTOCOL_FEATURES:
+        return vhost_user_qti_set_protocol_features_exec(dev, vmsg);
+    case VHOST_USER_RESET_DEVICE:
+        return vhost_user_qti_reset_device_exec(dev, vmsg);
+    case VHOST_USER_SET_STATUS:
+	return vhost_user_qti_set_status_exec(dev, vmsg);
     default:
         vmsg_close_fds(vmsg);
         EPRINT("Unhandled request: %d", vmsg->request);
@@ -664,9 +724,17 @@ static inline int msg_reply_requested(VhostUserMsg *vmsg)
 {
     switch (vmsg->request) {
     case VHOST_USER_GET_FEATURES:
+    case VHOST_USER_GET_PROTOCOL_FEATURES:
     case VHOST_USER_GET_VRING_BASE:
     case VHOST_USER_GET_QUEUE_NUM:
         return 1;
+    case VHOST_USER_SET_STATUS:
+    {
+        if (vmsg->flags & (1 << VHOST_USER_PROTOCOL_F_REPLY_ACK))
+            return 1;
+        else
+            return 0;
+    }
     default:
         return 0;
     }
