@@ -330,8 +330,10 @@ vhost_user_qti_get_features_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
 
     ret = vhost_kernel_get_features(dev->dev_fd, &vmsg->payload.u64);
 
+#ifndef CONFIG_HGY_PLATFORM
     vmsg->payload.u64 |= (1 << VIRTIO_GPU_F_VENDOR);
     vmsg->payload.u64 |= (1 << VHOST_USER_F_PROTOCOL_FEATURES);
+#endif
 
     DPRINT("Sending back to guest u64: 0x%016"PRIx64"\n", vmsg->payload.u64);
 
@@ -349,24 +351,28 @@ vhost_user_qti_set_features_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
 static int
 vhost_user_qti_set_owner_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
 {
-    //return vhost_kernel_set_owner(dev->dev_fd);
+#ifdef CONFIG_HGY_PLATFORM
+    return vhost_kernel_set_owner(dev->dev_fd);
+#else
     vhost_kernel_set_owner(dev->dev_fd);
     /* opsy virtio-gpu doesn't send VHOST_USER_SET_FEATURES, we need to do it */
     return vhost_kernel_set_features(dev->dev_fd, 0x130000000);
+#endif
 }
 
 static int
 vhost_user_qti_reset_device_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
 {
+#ifdef CONFIG_HGY_PLATFORM
+    return vhost_kernel_reset_device(dev->dev_fd);
+#else
     int ret = 0;
-
     /* VHOST_USER_PROTOCOL_F_STATUS supersedes the feature VHOST_USER_PROTOCOL_F_RESET_DEVICE
-       so not do anything here now
-    */
-    //ret = vhost_kernel_reset_device(dev->dev_fd);
-    //dev->need_setowner = 1;
-
+       so not do anything here now */
+     //ret = vhost_kernel_reset_device(dev->dev_fd);
+     //dev->need_setowner = 1;
     return ret;
+#endif
 }
 
 static int
@@ -452,8 +458,10 @@ vhost_user_qti_set_vring_num_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
     DPRINT("State.index: %d\n", vmsg->payload.state.index);
     DPRINT("State.num:   %d\n", vmsg->payload.state.num);
 
+#ifndef CONFIG_HGY_PLATFORM
     /* opsy virtio-gpu send us index 2 and 3 for vendor queues, we need to change them to 0 and 1 */
     vmsg->payload.state.index -= 2;
+#endif
     return vhost_kernel_set_vring_num(dev->dev_fd, &vmsg->payload.state);
 }
 
@@ -475,7 +483,12 @@ vhost_user_qti_set_vring_addr_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
         return -EINVAL;
     }
 
+#ifdef CONFIG_HGY_PLATFORM
+    k_vra.index = vra->index;
+#else
     k_vra.index = vra->index - 2;
+#endif
+
     k_vra.flags = vra->flags & (~(1 << VHOST_VRING_F_LOG));//we don't support log
     k_vra.desc_user_addr = (uint64_t)(uintptr_t)hva_to_va(dev, vra->desc_user_addr);
     k_vra.used_user_addr = (uint64_t)(uintptr_t)hva_to_va(dev, vra->used_user_addr);
@@ -499,7 +512,9 @@ vhost_user_qti_set_vring_base_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
     DPRINT("State.index: %d\n", index);
     DPRINT("State.num:   %d\n", num);
 
+#ifndef CONFIG_HGY_PLATFORM
     vmsg->payload.state.index -= 2;
+#endif
     return vhost_kernel_set_vring_base(dev->dev_fd, &vmsg->payload.state);
 }
 
@@ -511,7 +526,10 @@ vhost_user_qti_get_vring_base_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
     DPRINT("State.index: %d\n", index);
     vmsg->size = sizeof(vmsg->payload.state);
 
+#ifndef CONFIG_HGY_PLATFORM
     vmsg->payload.state.index -= 2;
+#endif
+
     return vhost_kernel_get_vring_base(dev->dev_fd, &vmsg->payload.state);
 }
 
@@ -523,7 +541,12 @@ vhost_user_qti_set_vring_kick_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
 
     DPRINT("u64: 0x%016"PRIx64"\n", vmsg->payload.u64);
 
+#ifdef CONFIG_HGY_PLATFORM
+    k_vrf.index = index;
+#else
     k_vrf.index = index - 2;
+#endif
+
     k_vrf.fd = vmsg->fds[0];
 
     DPRINT("Got kick_fd: %d for vq: %d\n", vmsg->fds[0], index);
@@ -539,7 +562,11 @@ vhost_user_qti_set_vring_call_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
 
     DPRINT("u64: 0x%016"PRIx64"\n", vmsg->payload.u64);
 
+#ifdef CONFIG_HGY_PLATFORM
+    k_vrf.index = index;
+#else
     k_vrf.index = index - 2;
+#endif
     k_vrf.fd = vmsg->fds[0];
 
     DPRINT("Got call_fd: %d for vq: %d\n", vmsg->fds[0], index);
@@ -555,7 +582,12 @@ vhost_user_qti_set_vring_err_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
 
     DPRINT("u64: 0x%016"PRIx64"\n", vmsg->payload.u64);
 
+#ifdef CONFIG_HGY_PLATFORM
+    k_vrf.index = index;
+#else
     k_vrf.index = index - 2;
+#endif
+
     k_vrf.fd = vmsg->fds[0];
 
     DPRINT("Got err_fd: %d for vq: %d\n", vmsg->fds[0], index);
@@ -669,12 +701,14 @@ vhost_user_qti_process_message(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
         }
         DPRINT("\n");
     }
+    DPRINT("================ Vhost user message ================ vmsg->request %d \n", vmsg->request);
 
+#ifndef CONFIG_HGY_PLATFORM
     if (dev->need_setowner) {
         vhost_user_qti_set_owner_exec(dev, vmsg);
         dev->need_setowner = 0;
     }
-
+#endif
     switch (vmsg->request) {
     case VHOST_USER_GET_FEATURES:
         return vhost_user_qti_get_features_exec(dev, vmsg);
