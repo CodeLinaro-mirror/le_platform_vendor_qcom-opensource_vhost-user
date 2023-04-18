@@ -4,11 +4,13 @@ Version: 1.0
 Release: r0
 Source0: %{name}-%{version}.tar.gz
 BuildRequires:	gcc systemd-rpm-macros hab-headers
+%{?systemd_requires}
+Requires: systemd
 
 License: GPLv2
 
 %description
-vhost user qti binary
+vhost user qti binary with added services
 
 %prep
 %autosetup -n vhost-user
@@ -21,12 +23,37 @@ $CC -D__linux__ -DCONFIG_HGY_PLATFORM -g -o vhost-user-qti vhost_user_q.c vhost_
 %install
 mkdir -p %{buildroot}%{_bindir}
 mkdir -p %{buildroot}%{_unitdir}
+mkdir -p %{buildroot}%{_unitdir}/multi-user.target.wants
 cp vhost-user-qti %{buildroot}%{_bindir}/vhost-user-qti
-cp vhost-user-gpu.service %{buildroot}%{_unitdir}/vhost-user-gpu.service
-
+install -DpZm 0644 vhost-user-gpu.service %{buildroot}%{_unitdir}
+install -DpZm 0644 vhost-user-disp.service %{buildroot}%{_unitdir}
+install -DpZm 0644 vhost-user-misc.service %{buildroot}%{_unitdir}
 chmod +x %{buildroot}%{_bindir}/vhost-user-qti
+pushd %{buildroot}%{_unitdir} && %{__ln_s} -r vhost-user-gpu.service multi-user.target.wants/vhost-user-gpu.service && popd
+pushd %{buildroot}%{_unitdir} && %{__ln_s} -r vhost-user-disp.service multi-user.target.wants/vhost-user-disp.service && popd
+pushd %{buildroot}%{_unitdir} && %{__ln_s} -r vhost-user-misc.service multi-user.target.wants/vhost-user-misc.service && popd
+
+%post
+%systemd_post vhost-user-gpu.service
+%systemd_post vhost-user-disp.service
+%systemd_post vhost-user-misc.service
+
+%preun
+%systemd_preun vhost-user-gpu.service
+%systemd_preun vhost-user-disp.service
+%systemd_preun vhost-user-misc.service
+
+%postun
+%systemd_postun_with_restart vhost-user-gpu.service
+%systemd_postun_with_restart vhost-user-disp.service
+%systemd_postun_with_restart vhost-user-misc.service
 
 %files
 %{_bindir}/vhost-user-qti
 %{_unitdir}/vhost-user-gpu.service
+%{_unitdir}/vhost-user-disp.service
+%{_unitdir}/vhost-user-misc.service
+%{_unitdir}/multi-user.target.wants/vhost-user-gpu.service
+%{_unitdir}/multi-user.target.wants/vhost-user-disp.service
+%{_unitdir}/multi-user.target.wants/vhost-user-misc.service
 
