@@ -28,32 +28,54 @@ cp vhost-user-qti %{buildroot}%{_bindir}/vhost-user-qti
 install -DpZm 0644 vhost-user-gpu.service %{buildroot}%{_unitdir}
 install -DpZm 0644 vhost-user-disp.service %{buildroot}%{_unitdir}
 install -DpZm 0644 vhost-user-misc.service %{buildroot}%{_unitdir}
+install -DpZm 0644 vhost-user-aud.service %{buildroot}%{_unitdir}
+install -DpZm 0644 vhost-user-vid.service %{buildroot}%{_unitdir}
+install -DpZm 0644 vhost-user-cam.service %{buildroot}%{_unitdir}
 chmod +x %{buildroot}%{_bindir}/vhost-user-qti
 pushd %{buildroot}%{_unitdir} && %{__ln_s} -r vhost-user-gpu.service multi-user.target.wants/vhost-user-gpu.service && popd
 pushd %{buildroot}%{_unitdir} && %{__ln_s} -r vhost-user-disp.service multi-user.target.wants/vhost-user-disp.service && popd
 pushd %{buildroot}%{_unitdir} && %{__ln_s} -r vhost-user-misc.service multi-user.target.wants/vhost-user-misc.service && popd
+pushd %{buildroot}%{_unitdir} && %{__ln_s} -r vhost-user-aud.service multi-user.target.wants/vhost-user-aud.service && popd
+pushd %{buildroot}%{_unitdir} && %{__ln_s} -r vhost-user-vid.service multi-user.target.wants/vhost-user-vid.service && popd
+pushd %{buildroot}%{_unitdir} && %{__ln_s} -r vhost-user-cam.service multi-user.target.wants/vhost-user-cam.service && popd
 
 %post
 %systemd_post vhost-user-gpu.service
 %systemd_post vhost-user-disp.service
 %systemd_post vhost-user-misc.service
+%systemd_post vhost-user-aud.service
+%systemd_post vhost-user-vid.service
+%systemd_post vhost-user-cam.service
+
 
 %preun
 %systemd_preun vhost-user-gpu.service
 %systemd_preun vhost-user-disp.service
 %systemd_preun vhost-user-misc.service
+%systemd_preun vhost-user-aud.service
+%systemd_preun vhost-user-vid.service
+%systemd_preun vhost-user-cam.service
+
 
 %postun
 %systemd_postun_with_restart vhost-user-gpu.service
 %systemd_postun_with_restart vhost-user-disp.service
 %systemd_postun_with_restart vhost-user-misc.service
+%systemd_postun_with_restart vhost-user-aud.service
+%systemd_postun_with_restart vhost-user-vid.service
+%systemd_postun_with_restart vhost-user-cam.service
 
 %files
 %{_bindir}/vhost-user-qti
 %{_unitdir}/vhost-user-gpu.service
 %{_unitdir}/vhost-user-disp.service
 %{_unitdir}/vhost-user-misc.service
+%{_unitdir}/vhost-user-aud.service
+%{_unitdir}/vhost-user-vid.service
+%{_unitdir}/vhost-user-cam.service
 %{_unitdir}/multi-user.target.wants/vhost-user-gpu.service
 %{_unitdir}/multi-user.target.wants/vhost-user-disp.service
 %{_unitdir}/multi-user.target.wants/vhost-user-misc.service
-
+%{_unitdir}/multi-user.target.wants/vhost-user-aud.service
+%{_unitdir}/multi-user.target.wants/vhost-user-vid.service
+%{_unitdir}/multi-user.target.wants/vhost-user-cam.service
