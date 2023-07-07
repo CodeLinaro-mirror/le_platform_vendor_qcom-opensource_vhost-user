@@ -66,6 +66,7 @@ pushd %{buildroot}%{_unitdir} && %{__ln_s} -r vhost-user-cam.service multi-user.
 %systemd_postun_with_restart vhost-user-cam.service
 
 %files
+%license NOTICE
 %{_bindir}/vhost-user-qti
 %{_unitdir}/vhost-user-gpu.service
 %{_unitdir}/vhost-user-disp.service
