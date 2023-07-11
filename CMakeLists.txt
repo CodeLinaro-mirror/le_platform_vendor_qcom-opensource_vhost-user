@@ -19,4 +19,3 @@ INCLUDE_DIRECTORIES(.)
 link_directories(${SYSROOT_LIBDIR})
 
 install(TARGETS "vhost-user-qti" DESTINATION bin)
-install(DIRECTORY include/  DESTINATION include)
