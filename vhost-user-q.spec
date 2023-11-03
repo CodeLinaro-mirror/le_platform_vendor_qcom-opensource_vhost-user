@@ -3,7 +3,7 @@ Name: vhost-user-q
 Version: 1.0
 Release: r0
 Source0: %{name}-%{version}.tar.gz
-BuildRequires:	gcc systemd-rpm-macros hab-headers
+BuildRequires:	gcc systemd-rpm-macros
 %{?systemd_requires}
 Requires: systemd
 
