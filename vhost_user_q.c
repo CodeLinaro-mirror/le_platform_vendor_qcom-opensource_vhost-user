@@ -39,6 +39,8 @@
 
 #define VHOST_USER_HDR_SIZE offsetof(VhostUserMsg, payload.u64)
 
+#define RESET_REQUESTED -3
+
 /* The version of the protocol we support */
 #define VHOST_USER_VERSION 1
 typedef struct VhostUserQtiMemRegion {
@@ -64,6 +66,9 @@ typedef struct VhostUserQtiDev {
     VhostUserQtiMemRegion regions[VHOST_MEMORY_MAX_NREGIONS];
     uint32_t driver_reset;
     uint32_t need_setowner;
+#ifdef CONFIG_HGY_PLATFORM
+    uint8_t ref_cnt;
+#endif
 } VhostUserQtiDev;
 
 /* implement strlcpy to replace banned function */
@@ -632,9 +637,11 @@ vhost_user_qti_get_protocol_features_exec(VhostUserQtiDev *dev, VhostUserMsg *vm
       VHOST_USER_PROTOCOL_F_STATUS supersedes the feature VHOST_USER_PROTOCOL_F_RESET_DEVICE
       so not do anything here now
     */
-    //vmsg->payload.u64 |= (1 << VHOST_USER_PROTOCOL_F_RESET_DEVICE);
+#ifdef CONFIG_HGY_PLATFORM
+    vmsg->payload.u64 |= (1 << VHOST_USER_PROTOCOL_F_RESET_DEVICE);
+#endif
     vmsg->payload.u64 |= (1 << VHOST_USER_PROTOCOL_F_REPLY_ACK);
-    vmsg->payload.u64 |= (1 << VHOST_USER_PROTOCOL_F_STATUS);
+    //vmsg->payload.u64 |= (1 << VHOST_USER_PROTOCOL_F_STATUS);
     DPRINT("Sending protocol feature back to guest u64: 0x%016"PRIx64"\n", vmsg->payload.u64);
 
     return ret;
@@ -717,7 +724,18 @@ vhost_user_qti_process_message(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
     case VHOST_USER_SET_OWNER:
         return vhost_user_qti_set_owner_exec(dev, vmsg);
     case VHOST_USER_RESET_OWNER:
-        return vhost_user_qti_reset_device_exec(dev, vmsg);
+	{
+	int ret = vhost_user_qti_reset_device_exec(dev, vmsg);
+#ifdef CONFIG_HGY_PLATFORM
+        if(0 == ret)
+		return RESET_REQUESTED;
+	else
+		return ret;
+#else
+	return ret;
+#endif
+
+	}
     case VHOST_USER_SET_MEM_TABLE:
         return vhost_user_qti_set_mem_table_exec(dev, vmsg);
     case VHOST_USER_SET_VRING_NUM:
@@ -783,11 +801,20 @@ vhost_user_qti_dispatch(VhostUserQtiDev *dev)
 
     ret = vhost_user_qti_message_read(dev, &vmsg);
     if (ret) {
+#ifdef CONFIG_HGY_PLATFORM
+	dev->ref_cnt--;
+#endif
         EPRINT("vhost_user_qti_message_read failed, %d\n", ret);
         goto end;
     }
 
     ret = vhost_user_qti_process_message(dev, &vmsg);
+#ifdef CONFIG_HGY_PLATFORM
+    if (ret == RESET_REQUESTED) {
+	EPRINT("vhost_user_qti_process_message returns reset requested %d, ret %d\n", vmsg.request, ret);
+        goto end;
+    }
+#endif
     if (ret) {
         EPRINT("vhost_user_qti_process_message failed, request %d, ret %d\n", vmsg.request, ret);
         goto end;
@@ -813,6 +840,19 @@ static void print_usage(void)
 {
     EPRINT("Usage:\n"
            "\tvhost-user-qti -s socket_path -d vhost_dev_path -q queue_number(0~65536)\n");
+}
+
+static void
+free_mem_region(VhostUserQtiDev *dev)
+{
+	uint32_t i;
+	if (!dev)
+		return;
+
+	 for (i = 0; i < dev->nregions; i++) {
+         VhostUserQtiMemRegion *dev_region = &dev->regions[i];
+	       munmap(dev_region->mmap_addr, dev_region->size + dev_region->mmap_offset);
+	 }
 }
 
 int main(int argc, char *argv[])
@@ -846,7 +886,7 @@ int main(int argc, char *argv[])
         print_usage();
         exit(EXIT_FAILURE);
     }
-
+loop:
     dev.dev_fd = open(dev_path, O_RDWR);
     if (dev.dev_fd < 0) {
         EPRINT("failed to open vhost dev %s, %s\n", dev_path, strerror(errno));
@@ -854,13 +894,15 @@ int main(int argc, char *argv[])
     }
 
     DPRINT("open %s success\n", dev_path);
-
     lsock = socket(AF_UNIX, SOCK_STREAM, 0);
     if (lsock < 0) {
         EPRINT("failed to open stream socket, %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
+#ifdef CONFIG_HGY_PLATFORM
+    dev.ref_cnt++;
+#endif
     ret = unlink(dev.socket_path);
     if ((ret < 0) && (errno != ENOENT)) {
 	EPRINT("failed to unlink socket %s, %d(%s)\n", dev.socket_path, ret, strerror(errno));
@@ -906,7 +948,7 @@ int main(int argc, char *argv[])
             .data = (__u8 *)&hab_cfg,
         };
 
-        strlcpy(hab_cfg.vm_name, dev.socket_path, sizeof(hab_cfg.vm_name));
+	strlcpy(hab_cfg.vm_name, dev.socket_path, sizeof(hab_cfg.vm_name));
 
         ret = vhost_kernel_set_config(dev.dev_fd, &k_cfg);
         if (ret < 0) {
@@ -917,10 +959,19 @@ int main(int argc, char *argv[])
 #endif
 
     while (vhost_user_qti_dispatch(&dev));
+#ifdef CONFIG_HGY_PLATFORM
+    if(dev.ref_cnt == 0)
+         vhost_kernel_reset_device(dev.dev_fd);
+    else
+         dev.ref_cnt--;
+#endif
 
     close(dev.sock_fd);
+    free_mem_region(&dev);
     close(dev.dev_fd);
-
+#ifdef CONFIG_HGY_PLATFORM
+    goto loop;
+#endif
     EPRINT("vhost-user-qti exit\n");
     return 0;
 }
