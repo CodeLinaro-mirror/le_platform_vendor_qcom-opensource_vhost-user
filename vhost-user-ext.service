@@ -26,12 +26,12 @@
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 [Unit]
-Description = launch vhost-user-qti Video
+Description = launch vhost-user-qti EXT
 
 After = remote-fs.target
 
 [Service]
-ExecStart = /usr/bin/vhost-user-qti -s /tmp/linux-vm2-vid-skt -d /dev/vhost-vid -q 6
+ExecStart = /usr/bin/vhost-user-qti -s /tmp/linux-vm2-ext-skt -d /dev/vhost-ext -q 2
 
 [Install]
 WantedBy = multi-user.target
