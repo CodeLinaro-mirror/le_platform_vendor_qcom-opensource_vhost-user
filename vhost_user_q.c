@@ -2,7 +2,7 @@
  * Copyright (c) 2021 The Linux Foundation. All rights reserved.
  * Copyright IBM, Corp. 2007
  * Copyright (c) 2016 Red Hat, Inc.
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022, 2024 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Authors:
  * Anthony Liguori <aliguori@us.ibm.com>
@@ -40,6 +40,28 @@
 #define VHOST_USER_HDR_SIZE offsetof(VhostUserMsg, payload.u64)
 
 #define RESET_REQUESTED -3
+/*
+ * number of the FD of kick/call file
+ *
+ * HAB design:
+ * 1 HAB domain : 1 vhost hab dev
+ * 1 pchan : 2 vqs
+ *
+ * QCrosVM design
+ * 1 vq : 1 call fd : 1 kick fd
+ *
+ * HAB and QCrosVM design
+ * 1 vhost hab dev : 1 kick file per vq : 1 call file
+ *
+ * For instance of 1 HAB domain with 1 pchan:
+ * 1 vhost hab dev : 2 vqs : 2 call fds : 2 kick fds : 2 kick files : 1 call file
+ * 1 HAB domain with 2 pchan:
+ * 1 vhost hab dev : 4 vqs : 4 call fds : 4 kick fds : 4 kick files : 1 call file
+ *
+ * 10 fds are needed for one domain with 5 pchans(display)
+ * Need to increase the size if 6 or more pchans are required in one HAB domain
+ */
+#define MAX_FD_NR 10
 
 /* The version of the protocol we support */
 #define VHOST_USER_VERSION 1
@@ -59,6 +81,8 @@ typedef struct VhostUserQtiMemRegion {
 typedef struct VhostUserQtiDev {
     int dev_fd;
     int sock_fd;
+    int kick_fd[MAX_FD_NR];
+    int call_fd[MAX_FD_NR];
     char *socket_path;
     uint16_t max_queues;
 
@@ -538,6 +562,28 @@ vhost_user_qti_get_vring_base_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
     return vhost_kernel_get_vring_base(dev->dev_fd, &vmsg->payload.state);
 }
 
+static void store_fd(int *fd_array, int fd)
+{
+    int i = 0;
+
+    for (; i < MAX_FD_NR; i++)
+        if (fd_array[i] == -1) {
+            fd_array[i] = fd;
+            break;
+        }
+}
+
+static void free_fds(int *fd_array)
+{
+    int i = 0;
+
+    for (; i < MAX_FD_NR; i++)
+        if (fd_array[i] != -1) {
+            close(fd_array[i]);
+            fd_array[i] = -1;
+        }
+}
+
 static int
 vhost_user_qti_set_vring_kick_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
 {
@@ -553,6 +599,8 @@ vhost_user_qti_set_vring_kick_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
 #endif
 
     k_vrf.fd = vmsg->fds[0];
+
+    store_fd(dev->kick_fd, vmsg->fds[0]);
 
     DPRINT("Got kick_fd: %d for vq: %d\n", vmsg->fds[0], index);
 
@@ -573,6 +621,8 @@ vhost_user_qti_set_vring_call_exec(VhostUserQtiDev *dev, VhostUserMsg *vmsg)
     k_vrf.index = index - 2;
 #endif
     k_vrf.fd = vmsg->fds[0];
+
+    store_fd(dev->call_fd, vmsg->fds[0]);
 
     DPRINT("Got call_fd: %d for vq: %d\n", vmsg->fds[0], index);
 
@@ -958,6 +1008,9 @@ loop:
     }
 #endif
 
+    memset(dev.kick_fd, -1, sizeof(int) * MAX_FD_NR);
+    memset(dev.call_fd, -1, sizeof(int) * MAX_FD_NR);
+
     while (vhost_user_qti_dispatch(&dev));
 #ifdef CONFIG_HGY_PLATFORM
     if(dev.ref_cnt == 0)
@@ -967,6 +1020,8 @@ loop:
 #endif
 
     close(dev.sock_fd);
+    free_fds(dev.call_fd);
+    free_fds(dev.kick_fd);
     free_mem_region(&dev);
     close(dev.dev_fd);
 #ifdef CONFIG_HGY_PLATFORM

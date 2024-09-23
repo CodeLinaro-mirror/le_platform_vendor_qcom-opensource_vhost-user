@@ -31,6 +31,9 @@ install -DpZm 0644 vhost-user-misc.service %{buildroot}%{_unitdir}
 install -DpZm 0644 vhost-user-aud.service %{buildroot}%{_unitdir}
 install -DpZm 0644 vhost-user-vid.service %{buildroot}%{_unitdir}
 install -DpZm 0644 vhost-user-cam.service %{buildroot}%{_unitdir}
+install -DpZm 0644 vhost-user-vnw.service %{buildroot}%{_unitdir}
+install -DpZm 0644 vhost-user-gpce.service %{buildroot}%{_unitdir}
+install -DpZm 0644 vhost-user-ext.service %{buildroot}%{_unitdir}
 chmod +x %{buildroot}%{_bindir}/vhost-user-qti
 pushd %{buildroot}%{_unitdir} && %{__ln_s} -r vhost-user-gpu.service multi-user.target.wants/vhost-user-gpu.service && popd
 pushd %{buildroot}%{_unitdir} && %{__ln_s} -r vhost-user-disp.service multi-user.target.wants/vhost-user-disp.service && popd
@@ -38,6 +41,9 @@ pushd %{buildroot}%{_unitdir} && %{__ln_s} -r vhost-user-misc.service multi-user
 pushd %{buildroot}%{_unitdir} && %{__ln_s} -r vhost-user-aud.service multi-user.target.wants/vhost-user-aud.service && popd
 pushd %{buildroot}%{_unitdir} && %{__ln_s} -r vhost-user-vid.service multi-user.target.wants/vhost-user-vid.service && popd
 pushd %{buildroot}%{_unitdir} && %{__ln_s} -r vhost-user-cam.service multi-user.target.wants/vhost-user-cam.service && popd
+pushd %{buildroot}%{_unitdir} && %{__ln_s} -r vhost-user-vnw.service multi-user.target.wants/vhost-user-vnw.service && popd
+pushd %{buildroot}%{_unitdir} && %{__ln_s} -r vhost-user-gpce.service multi-user.target.wants/vhost-user-gpce.service && popd
+pushd %{buildroot}%{_unitdir} && %{__ln_s} -r vhost-user-ext.service multi-user.target.wants/vhost-user-ext.service && popd
 
 %post
 %systemd_post vhost-user-gpu.service
@@ -46,6 +52,9 @@ pushd %{buildroot}%{_unitdir} && %{__ln_s} -r vhost-user-cam.service multi-user.
 %systemd_post vhost-user-aud.service
 %systemd_post vhost-user-vid.service
 %systemd_post vhost-user-cam.service
+%systemd_post vhost-user-vnw.service
+%systemd_post vhost-user-gpce.service
+%systemd_post vhost-user-ext.service
 
 
 %preun
@@ -55,6 +64,9 @@ pushd %{buildroot}%{_unitdir} && %{__ln_s} -r vhost-user-cam.service multi-user.
 %systemd_preun vhost-user-aud.service
 %systemd_preun vhost-user-vid.service
 %systemd_preun vhost-user-cam.service
+%systemd_preun vhost-user-vnw.service
+%systemd_preun vhost-user-gpce.service
+%systemd_preun vhost-user-ext.service
 
 
 %postun
@@ -64,6 +76,9 @@ pushd %{buildroot}%{_unitdir} && %{__ln_s} -r vhost-user-cam.service multi-user.
 %systemd_postun_with_restart vhost-user-aud.service
 %systemd_postun_with_restart vhost-user-vid.service
 %systemd_postun_with_restart vhost-user-cam.service
+%systemd_postun_with_restart vhost-user-vnw.service
+%systemd_postun_with_restart vhost-user-gpce.service
+%systemd_postun_with_restart vhost-user-ext.service
 
 %files
 %license NOTICE
@@ -74,9 +89,15 @@ pushd %{buildroot}%{_unitdir} && %{__ln_s} -r vhost-user-cam.service multi-user.
 %{_unitdir}/vhost-user-aud.service
 %{_unitdir}/vhost-user-vid.service
 %{_unitdir}/vhost-user-cam.service
+%{_unitdir}/vhost-user-vnw.service
+%{_unitdir}/vhost-user-gpce.service
+%{_unitdir}/vhost-user-ext.service
 %{_unitdir}/multi-user.target.wants/vhost-user-gpu.service
 %{_unitdir}/multi-user.target.wants/vhost-user-disp.service
 %{_unitdir}/multi-user.target.wants/vhost-user-misc.service
 %{_unitdir}/multi-user.target.wants/vhost-user-aud.service
 %{_unitdir}/multi-user.target.wants/vhost-user-vid.service
 %{_unitdir}/multi-user.target.wants/vhost-user-cam.service
+%{_unitdir}/multi-user.target.wants/vhost-user-vnw.service
+%{_unitdir}/multi-user.target.wants/vhost-user-gpce.service
+%{_unitdir}/multi-user.target.wants/vhost-user-ext.service
