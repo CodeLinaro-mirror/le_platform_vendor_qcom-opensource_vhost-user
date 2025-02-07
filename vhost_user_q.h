@@ -15,6 +15,7 @@
 #include <sys/poll.h>
 #include <linux/vhost.h>
 #include <linux/virtio_ring.h>
+#include <syslog.h>
 
 #ifdef QEMU_DESKTOP
 #include "contrib/libvhost-user/libvhost-user.h"
@@ -26,6 +27,34 @@
 
 #define LIBVHOST_USER_DEBUG 1
 
+#define SYS_LOG
+
+#define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+
+#ifdef SYS_LOG
+#define EPRINT(fmt, ...)  \
+        syslog(LOG_ERR, \
+            "[%s:%s():%d] " fmt "\n", \
+            __FILENAME__, __FUNCTION__, __LINE__, ##__VA_ARGS__)
+
+#define IPRINT(fmt, ...)  \
+        syslog(LOG_INFO, \
+            "[%s:%s():%d] " fmt "\n", \
+            __FILENAME__, __FUNCTION__, __LINE__, ##__VA_ARGS__)
+
+#define DPRINT(fmt, ...)  \
+    do {                                           \
+        if (LIBVHOST_USER_DEBUG) {                 \
+            syslog(LOG_INFO, \
+                "[%s:%s():%d] " fmt "\n", \
+                __FILENAME__, __FUNCTION__, __LINE__, ##__VA_ARGS__); \
+        } else {                                    \
+            syslog(LOG_DEBUG, \
+                "[%s:%s():%d] " fmt "\n", \
+                __FILENAME__, __FUNCTION__, __LINE__, ##__VA_ARGS__); \
+        }                                           \
+    } while (0)
+#else
 #define DPRINT(...)                             \
     do {                                        \
         if (LIBVHOST_USER_DEBUG) {              \
@@ -37,7 +66,7 @@
     do {                                        \
         fprintf(stderr, __VA_ARGS__);        \
     } while (0)
-
+#endif
 /* vhost kernel ioctl wrappers */
 int vhost_kernel_memslots_limit(int fd);
 int vhost_kernel_set_log_base(int fd, uint64_t base);
