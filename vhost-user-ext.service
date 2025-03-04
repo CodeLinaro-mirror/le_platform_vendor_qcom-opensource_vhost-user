@@ -35,7 +35,7 @@ DefaultDependencies = no
 
 [Service]
 Slice = gvm.slice
-ExecStart = /usr/bin/vhost-user-qti -s /tmp/linux-vm2-ext-skt -d /dev/vhost-ext -q 2
+ExecStart = /usr/bin/vhost-user-qti -s /tmp/linux-vm2-ext-skt -d /dev/vhost-ext -q 6
 
 [Install]
 WantedBy = multi-user.target
