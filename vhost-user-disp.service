@@ -28,7 +28,10 @@
 [Unit]
 Description = launch vhost-user-qti DISP
 
-After = remote-fs.target
+After = remote-fs.target tmp.mount systemd-modules-load.service
+Conflicts = shutdown.target
+Before = shutdown.target
+DefaultDependencies = no
 
 [Service]
 Slice = gvm.slice
