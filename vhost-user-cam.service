@@ -31,6 +31,7 @@ Description = launch vhost-user-qti Camera
 After = remote-fs.target
 
 [Service]
+Slice = gvm.slice
 ExecStart = /usr/bin/vhost-user-qti -s /tmp/linux-vm2-cam-skt -d /dev/vhost-cam -q 4
 
 [Install]
