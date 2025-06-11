@@ -8,7 +8,7 @@ After = remote-fs.target
 
 [Service]
 SELinuxContext=system_u:system_r:vhost_user_qti_vm3_t:s0
-ExecStart = /usr/bin/vhost-user-qti -s /tmp/linux-vm3-ext-skt -d /dev/vhost-vm3-ext -q 2
+ExecStart = /usr/bin/vhost-user-qti -s /tmp/linux-vm3-ext-skt -d /dev/vhost-vm3-ext -q 6
 
 [Install]
 WantedBy = multi-user.target
