@@ -1,3 +1,6 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
 # Copyright (c) 2021 The Linux Foundation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,13 +29,13 @@
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 [Unit]
-Description = launch vhost-user-qti GFX
+Description = launch vhost-user-qti DPRX
 
 After = remote-fs.target
 
 [Service]
-Slice = gvm.slice
-ExecStart = /usr/bin/vhost-user-qti -s /tmp/linux-vm2-ogles-skt -d /dev/vhost-ogles -q 2
+ExecStart = /usr/bin/vhost-user-qti -s /tmp/linux-vm2-dprx-skt -d /dev/vhost-dprx -q 4
 
 [Install]
 WantedBy = multi-user.target
+
