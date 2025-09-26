@@ -10,7 +10,7 @@
 #include "vhost_user.h"
 #include "vu_common.h"
 #include "vu_socket.h"
-
+#include "vhost_user_vmm.h"
 
 static int log_info = 1;
 static int log_debug;
@@ -20,6 +20,8 @@ typedef struct vhost_message_handler {
     int (*callback)(struct vhost_user_dev *dev, struct vhu_msg_context *ctx);
     bool accepts_fd;
 } vhost_message_handler_t;
+
+extern vhost_user_q_state vhost_user_qti_state;
 
 static void store_fd(int *fd_array, int fd)
 {
@@ -195,14 +197,13 @@ vhost_user_reset_owner(struct vhost_user_dev *dev,
             struct vhu_msg_context *ctx)
 {
     int ret = -1;
+
 #ifdef CONFIG_HGY_PLATFORM
-/**
- * Reset owner may blocking at the hab driver. But VHOST_USER_GET_VRING_BASE is a blocking message.
- * If we blocking at here, the VMM will wait forever. So we should not reset owner here.
- */
-//#if 0
     /* We have to stop the queue (virtio) if it is running. */
     if (dev->vdev->valid) {
+        pr_debug("start to send VHOST_RESET_OWNER cmd\n");
+        vhost_user_qti_state = VHOST_USER_QTI_RESETING_VHOST_DEV;
+
         if (dev->kernel_ops->reset_owner)
             ret = dev->kernel_ops->reset_owner(dev->vdev);
         else
@@ -214,14 +215,11 @@ vhost_user_reset_owner(struct vhost_user_dev *dev,
         }
         dev->vdev->valid = 0;
     }
-//#endif
 
     pr_info("success reset owner\n");
 #else
     /* VHOST_USER_PROTOCOL_F_STATUS supersedes the feature VHOST_USER_PROTOCOL_F_RESET_DEVICE
        so not do anything here now */
-     //ret = vhost_kernel_reset_device(dev->dev_fd);
-     //dev->need_setowner = 1;
 #endif
 
     return VHOST_MSG_RESULT_OK;
@@ -981,6 +979,9 @@ vhost_user_deinit_device(struct vhost_user_dev *dev)
         close(dev->vsocket.socket_fd);
 
     if (dev->vdev->valid) {
+        pr_debug("start to send VHOST_RESET_OWNER cmd\n");
+        vhost_user_qti_state = VHOST_USER_QTI_RESETING_VHOST_DEV;
+
         if (dev->kernel_ops->reset_owner)
             ret = dev->kernel_ops->reset_owner(dev->vdev);
         else

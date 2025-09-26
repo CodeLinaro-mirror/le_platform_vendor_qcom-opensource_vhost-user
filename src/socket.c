@@ -13,35 +13,17 @@
 #include <stdio.h>
 #include <systemd/sd-daemon.h>
 #include "vu_socket.h"
+#include "vhost_user.h"
+#include "vhost_user_vmm.h"
 
-static int log_info = 1;
-static int log_debug;
+#ifdef HAB_DESKTOP_USER
+#include <bsd/string.h>
+#elif !defined(HAVE_STRLCPY) && defined(USE_GLIB)
+#include <glib.h>
+#define strlcpy g_strlcpy
+#endif
 
-#define pr_info(fmt, args...) do {if (log_info)  printf(fmt, ##args);} while(0)
-#define pr_debug(fmt, args...) do {if (log_debug)  printf(fmt, ##args);} while(0)
-#define pr_err(fmt, args...) do { printf(fmt, ##args);} while(0)
-
-//define strlcpy to avoid the banned strncpy
-size_t strlcpy(char *dst, const char *src, size_t size)
-{
-    int copyed = 0;
-    int i;
-
-    if (!dst || !src || (size < 2))
-        return copyed;
-
-    for (i = 0; i < size - 1; i++) {
-        if (*src != '\0') {
-            *dst++ = *src++;
-            copyed++;
-        } else {
-            break;
-        }
-    }
-    *dst = '\0';
-
-    return copyed;
-}
+extern vhost_user_q_state vhost_user_qti_state;
 
 /*
  * return bytes# of read on success or negative val on failure. Update fdnum
@@ -218,12 +200,17 @@ vhost_user_start_server(struct vhost_user_socket *vsocket)
         goto err;
     }
 
+    vhost_user_qti_state = VHOST_USER_QTI_READY;
+
     fd = accept(fd, NULL, NULL);
     if (fd < 0)
         return -1;
 
     pr_debug("new connection setup\n");
     close(vsocket->socket_fd);
+
+    vhost_user_qti_state = VHOST_USER_QTI_CONNECTED;
+
     vsocket->socket_fd = fd;
     return 0;
 

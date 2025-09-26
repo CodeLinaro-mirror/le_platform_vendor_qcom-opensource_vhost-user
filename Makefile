@@ -38,7 +38,7 @@ $(OBJ_DIR)/%.o: %.c $(DEPS)
 
 $(BIN_DIR)/$(TARGET): $(OBJ)
 	@mkdir -p $(@D)
-	gcc -g -o $@ $^ $(CFLAGS) -L$(LIB_DIR) $(LIBS)
+	gcc -g -o $@ $^ $(CFLAGS) -L$(LIB_DIR) -lglib-2.0 $(LIBS)
 
 .PHONY: clean
 

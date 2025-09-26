@@ -4,7 +4,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <vmm_clib.h>
 #include "vhost_user.h"
+#include "vhost_user_vmm.h"
 
 typedef struct VhostUserQtiDev {
     int dev_fd;
@@ -13,6 +15,8 @@ typedef struct VhostUserQtiDev {
     struct vhost_user_dev dev;
     int max_queues;
 } VhostUserQtiDev;
+
+vhost_user_q_state vhost_user_qti_state = VHOST_USER_QTI_INIT;
 
 static void print_usage(void)
 {
@@ -26,6 +30,9 @@ int main(int argc, char *argv[])
     int c;
     char *dev_path = NULL;
     VhostUserQtiDev dev = { 0 };
+    void *vmm_handle;
+    int vmid = -1;
+    char hab_vmm_client_name[256];
 
     while ((c = getopt(argc, argv, "s:d:q:")) != -1) {
         switch (c) {
@@ -49,6 +56,10 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    ret = hab_register_to_vmm(dev.socket_path, vmm_handle, hab_vmm_client_name, 256, &vmid);
+    if (ret != 0)
+        pr_err("failed to register as a vmm_service client %d. but ignore it\n", ret);
+
     do {
         pr_info("vhost-user-qti start init\n");
 
@@ -69,6 +80,9 @@ int main(int argc, char *argv[])
         pr_info("vhost-user-qti deinit done\n");
 
     } while(1);
+
+    if (vmid > 0)
+        hab_unregister_from_vmm(vmid, vmm_handle);
 
     pr_info("vhost-user-qti exit\n");
     return 0;
