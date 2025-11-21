@@ -35,6 +35,8 @@ After = remote-fs.target
 
 [Service]
 ExecStart = /usr/bin/vhost-user-qti -s /tmp/linux-vm2-soccp-skt -d /dev/vhost-soccp -q 2
+Type=notify
+NotifyAccess=main
 
 [Install]
 WantedBy = multi-user.target

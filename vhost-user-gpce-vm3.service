@@ -9,6 +9,8 @@ After = remote-fs.target
 [Service]
 SELinuxContext=system_u:system_r:vhost_user_qti_vm3_t:s0
 ExecStart = /usr/bin/vhost-user-qti -s /tmp/linux-vm3-gpce-skt -d /dev/vhost-vm3-gpce -q 2
+Type=notify
+NotifyAccess=main
 
 [Install]
 WantedBy = multi-user.target
