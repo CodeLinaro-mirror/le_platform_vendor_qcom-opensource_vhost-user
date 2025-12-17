@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
     int c;
     char *dev_path = NULL;
     VhostUserQtiDev dev = { 0 };
-    void *vmm_handle;
+    void *vmm_handle = NULL;
     int vmid = -1;
     char hab_vmm_client_name[256];
 
@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    ret = hab_register_to_vmm(dev.socket_path, vmm_handle, hab_vmm_client_name, 256, &vmid);
+    ret = hab_register_to_vmm(dev.socket_path, &vmm_handle, hab_vmm_client_name, 256, &vmid);
     if (ret != 0)
         pr_err("failed to register as a vmm_service client %d. but ignore it\n", ret);
 

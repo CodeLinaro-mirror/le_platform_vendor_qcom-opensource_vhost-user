@@ -178,7 +178,7 @@ static int hab_vmm_callback(uint32_t vmid, vmm_event_t event, void *priv_data)
     return 0;
 }
 
-int hab_register_to_vmm(const char *socket_path, void *vmm_handle,
+int hab_register_to_vmm(const char *socket_path, void **vmm_handle,
     char *hab_vmm_client_name, int len, int *vmid)
 {
     int ret = 0;
@@ -198,7 +198,7 @@ int hab_register_to_vmm(const char *socket_path, void *vmm_handle,
         return -EINVAL;
     }
 
-    ret = vmm_client_connect(hab_vmm_client_name, VMM_SERVICE_SERVER, &vmm_handle);
+    ret = vmm_client_connect(hab_vmm_client_name, VMM_SERVICE_SERVER, vmm_handle);
     if (ret < 0) {
         pr_err("Failed to connect to vmm service, Error: %d \n", ret);
         return ret;
@@ -210,7 +210,7 @@ int hab_register_to_vmm(const char *socket_path, void *vmm_handle,
     attr.level = HAB_VMM_PRIO;
     attr.priv_data = (void *)hab_vmm_client_name;
 
-    ret = vmm_subscribe_event_notification(vmm_handle, 1, &tmp_vmid, &attr);
+    ret = vmm_subscribe_event_notification(*vmm_handle, 1, &tmp_vmid, &attr);
     if (ret < 0) {
         pr_err("vmm register failed %d\n", ret);
         return ret;
