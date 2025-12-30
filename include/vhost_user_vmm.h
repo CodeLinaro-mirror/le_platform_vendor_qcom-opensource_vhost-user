@@ -21,7 +21,7 @@ typedef enum vhost_user_q_state {
     VHOST_USER_QTI_RESETING_VHOST_DEV
 } vhost_user_q_state;
 
-int hab_register_to_vmm(const char *socket_path, void *vmm_handle,
+int hab_register_to_vmm(const char *socket_path, void **vmm_handle,
     char *hab_vmm_client_name, int len, int *vmid);
 void hab_unregister_from_vmm(int vmid, void *vmm_handle);
 #endif /* VHOST_USER_VMM_H */
