@@ -209,6 +209,7 @@ int hab_register_to_vmm(const char *socket_path, void **vmm_handle,
     attr.event_mask = GVM_SHUTDOWN_LEVEL_1 | GVM_SHUTDOWN_LEVEL_2;
     attr.level = HAB_VMM_PRIO;
     attr.priv_data = (void *)hab_vmm_client_name;
+    attr.sync = 0;
 
     ret = vmm_subscribe_event_notification(*vmm_handle, 1, &tmp_vmid, &attr);
     if (ret < 0) {
