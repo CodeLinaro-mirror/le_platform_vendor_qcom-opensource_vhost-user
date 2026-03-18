@@ -4,7 +4,10 @@
 [Unit]
 Description = launch vhost-user-qti MISC for vm3
 
-After = remote-fs.target
+After = remote-fs.target tmp.mount systemd-modules-load.service
+Conflicts = shutdown.target
+Before = shutdown.target
+DefaultDependencies = no
 
 [Service]
 SELinuxContext=system_u:system_r:vhost_user_qti_vm3_t:s0
