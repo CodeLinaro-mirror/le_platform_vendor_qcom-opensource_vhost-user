@@ -10,6 +10,7 @@ Before = shutdown.target
 DefaultDependencies = no
 
 [Service]
+Slice=gvm.slice
 SELinuxContext=system_u:system_r:vhost_user_qti_vm3_t:s0
 ExecStart = /usr/bin/vhost-user-qti -s /tmp/linux-vm3-cam-skt -d /dev/vhost-vm3-cam -q 4
 Type=notify
