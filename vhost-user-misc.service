@@ -28,7 +28,7 @@
 [Unit]
 Description = launch vhost-user-qti MISC
 
-After = remote-fs.target tmp.mount systemd-modules-load.service
+After = remote-fs.target disksymlink.service tmp.mount systemd-modules-load.service
 Conflicts = shutdown.target
 Before = shutdown.target
 DefaultDependencies = no
