@@ -1,0 +1,17 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+[Unit]
+Description = launch vhost-user-qti HSI2S for vm3
+
+After = remote-fs.target
+
+[Service]
+Slice=gvm.slice
+SELinuxContext=system_u:system_r:vhost_user_qti_vm3_t:s0
+ExecStart = /usr/bin/vhost-user-qti -s /tmp/linux-vm3-hsi2s-skt -d /dev/vhost-vm3-hsi2s -q 2
+Type=notify
+NotifyAccess=main
+
+[Install]
+WantedBy = multi-user.target
