@@ -41,6 +41,11 @@ struct vhost_user_mem;
             "[%s:%s():%d] " fmt "\n", \
             __FILENAME__, __FUNCTION__, __LINE__, ##__VA_ARGS__)
 
+#define pr_warn(fmt, ...)  \
+        syslog(LOG_WARNING, \
+            "[%s:%s():%d] " fmt "\n", \
+            __FILENAME__, __FUNCTION__, __LINE__, ##__VA_ARGS__)
+
 #define pr_debug(fmt, ...)  \
         syslog(LOG_DEBUG, \
             "[%s:%s():%d] " fmt "\n", \

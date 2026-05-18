@@ -7,6 +7,7 @@
 #include <vmm_clib.h>
 #include "vhost_user.h"
 #include "vhost_user_vmm.h"
+#include "vhost_user_compresmgr.h"
 
 typedef struct VhostUserQtiDev {
     int dev_fd;
@@ -55,6 +56,16 @@ int main(int argc, char *argv[])
         print_usage();
         exit(EXIT_FAILURE);
     }
+
+    /**
+     * Set the scheduling policy and priority for the main thread,
+     * and rely on vhost-worker threads to inherit these settings.
+     * TODO: Remove the scheduling configuration in tx_worker/rx_worker on vhost-hab.
+     *       Add support for the inheritance mechanism similar to vhost-framework on vhost-hab
+     *       if vhost-framework does not already provide it.
+     *       This will enable configuring a normal scheduling policy through the XML configuration.
+     */
+    set_vhost_worker_sched(dev_path);
 
     ret = hab_register_to_vmm(dev.socket_path, &vmm_handle, hab_vmm_client_name, 256, &vmid);
     if (ret != 0)

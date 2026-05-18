@@ -927,6 +927,7 @@ vhost_user_init_device(struct vhost_user_dev *dev, char *dev_path)
     }
 
     snprintf(vdev->path, PATH_MAX, "%s", dev_path);
+    vdev->valid = 0;
 
     dev->vdev = vdev;
     dev->kernel_ops = &virtio_ops_kernel;

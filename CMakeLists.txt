@@ -10,6 +10,7 @@ set(SOURCE_FILES
       src/vhost_kernel.c
       src/main.c
       src/vhost_user_vmm.c
+      src/vhost_user_compresmgr.c
       )
 
 include(CheckSymbolExists)
@@ -49,7 +50,7 @@ INCLUDE_DIRECTORIES(.)
 link_directories(${SYSROOT_LIBDIR})
 link_directories(${CMAKE_INSTALL_LIBDIR})
 
-target_link_libraries (vhost-user-qti systemd)
+target_link_libraries (vhost-user-qti systemd compresmgr_client)
 
 if(NOT HAVE_STRLCAT OR NOT HAVE_STRLCPY)
   target_link_libraries (vhost-user-qti vmm_client glib-2.0)
