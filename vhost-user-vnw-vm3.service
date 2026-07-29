@@ -1,10 +1,11 @@
-# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
 [Unit]
 Description = launch vhost-user-qti VNW for vm3
 
-After = remote-fs.target disksymlink.service tmp.mount systemd-modules-load.service
+After = remote-fs.target tmp.mount systemd-modules-load.service early-services.target
+Wants = early-services.target
 Conflicts = shutdown.target
 Before = shutdown.target
 DefaultDependencies = no
