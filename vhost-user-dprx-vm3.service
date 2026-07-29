@@ -4,7 +4,8 @@
 [Unit]
 Description = launch vhost-user-qti DPRX for vm3
 
-After = remote-fs.target
+After = remote-fs.target early-services.target
+Wants = early-services.target
 
 [Service]
 SELinuxContext=system_u:system_r:vhost_user_qti_vm3_t:s0
