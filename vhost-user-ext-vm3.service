@@ -4,7 +4,8 @@
 [Unit]
 Description = launch vhost-user-qti EXT for vm3
 
-After = remote-fs.target tmp.mount systemd-modules-load.service
+After = remote-fs.target tmp.mount systemd-modules-load.service early-services.target
+Wants = early-services.target
 Conflicts = shutdown.target
 Before = shutdown.target
 DefaultDependencies = no

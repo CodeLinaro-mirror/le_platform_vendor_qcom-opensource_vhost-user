@@ -63,6 +63,8 @@ vhost_user_get_features(struct vhost_user_dev *dev,
         return VHOST_MSG_RESULT_ERR;
     }
 
+    ctx->msg.payload.u64 = features;
+
 #ifndef CONFIG_HGY_PLATFORM
     ctx->msg.payload.u64 |= (1 << VIRTIO_GPU_F_VENDOR);
     ctx->msg.payload.u64 |= (1 << VHOST_USER_F_PROTOCOL_FEATURES);
