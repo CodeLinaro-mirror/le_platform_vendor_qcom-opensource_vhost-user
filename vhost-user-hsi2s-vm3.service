@@ -15,4 +15,5 @@ Type=notify
 NotifyAccess=main
 
 [Install]
-WantedBy = multi-user.target
+WantedBy = single-lv-gvm.target
+WantedBy = multi-gvm.target
