@@ -4,7 +4,8 @@
 [Unit]
 Description = launch vhost-user-qti HSI2S for vm3
 
-After = remote-fs.target
+After = remote-fs.target early-services.target
+Wants = early-services.target
 
 [Service]
 Slice=gvm.slice
@@ -14,4 +15,5 @@ Type=notify
 NotifyAccess=main
 
 [Install]
-WantedBy = multi-user.target
+WantedBy = single-lv-gvm.target
+WantedBy = multi-gvm.target

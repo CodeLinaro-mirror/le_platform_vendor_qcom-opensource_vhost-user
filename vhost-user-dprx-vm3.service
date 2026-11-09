@@ -4,7 +4,8 @@
 [Unit]
 Description = launch vhost-user-qti DPRX for vm3
 
-After = remote-fs.target
+After = remote-fs.target early-services.target
+Wants = early-services.target
 
 [Service]
 SELinuxContext=system_u:system_r:vhost_user_qti_vm3_t:s0
@@ -13,5 +14,6 @@ Type=notify
 NotifyAccess=main
 
 [Install]
-WantedBy = multi-user.target
+WantedBy = single-lv-gvm.target
+WantedBy = multi-gvm.target
 

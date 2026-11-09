@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
 
         if (vhost_user_init_device(&dev.dev, dev_path) < 0) {
             pr_err("failed to init device\n");
-            continue;
+            break;
         }
 
         if (vhost_user_wait_for_connect(&dev.dev, dev.socket_path) < 0) {
